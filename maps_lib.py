@@ -22,7 +22,7 @@ font = {'family' : 'sans serif',
     'size'   : 22}
 plt.rc('font', **font)
 
-def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=None, color_maper=None, label = "", outfolder ="img/" , new_title=None, verbose=False, font=font ):
+def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=None, color_maper=None, label = "", outfolder ="img/" , new_title=None, verbose=False, font=font, doPNG=True ):
     """Makes a cloropleth map and a legend from a panda series and a blank svg map. 
     Assumes the index of the series matches the SVG classes
     Saves the map in SVG, and in PNG if Inkscape is installed.
@@ -90,19 +90,23 @@ def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=No
         print("cannot convert SVG to PNG. Install Inkscape to do so.")
         could_do_png_map = False
     else:
-        #Attempts to inkscape SVG to PNG    
-        process=Popen("inkscape -f {map}.svg -e {map}.png -d 150".format(map=target_name, outfolder = outfolder) , shell=True, stdout=PIPE,   stderr=PIPE)
-        out, err = process.communicate()
-        errcode = process.returncode
-        if errcode:
-            could_do_png_map = False
-            print("Could not transform SVG to PNG. Error message was:\n"+err.decode())
-        else:
-            could_do_png_map = True
-            display(HTML("<a target='_blank' href='"+target_name+".png"+"'>PNG "+new_title+"</a>"))  #Linking to SVG instead of showing SVG directly works around a bug in the notebook where style-based colouring colors all the maps in the NB with a single color scale (due to CSS)
+        if doPNG:
+            #Attempts to inkscape SVG to PNG    
+            process=Popen("inkscape -f {map}.svg -e {map}.png -d 150".format(map=target_name, outfolder = outfolder) , shell=True, stdout=PIPE,   stderr=PIPE)
+            out, err = process.communicate()
+            errcode = process.returncode
+            if errcode:
+                could_do_png_map = False
+                print("Could not transform SVG to PNG. Error message was:\n"+err.decode())
+            else:
+                could_do_png_map = True
+                #trims margins out
+                call("convert "+outfolder+"{map}.png -trim {map}.png".format(map=target_name), shell=True )
+
+                display(HTML("<a target='_blank' href='"+target_name+".png"+"'>PNG "+new_title+"</a>"))  #Linking to SVG instead of showing SVG directly works around a bug in the notebook where style-based colouring colors all the maps in the NB with a single color scale (due to CSS)
         
         #Attempts to inkscape SVG to PDF
-        process=Popen("inkscape -f {map}.svg --verb=FitCanvasToDrawing --export-pdf {map}.pdf".format(map=target_name, outfolder = outfolder) , shell=True, stdout=PIPE,   stderr=PIPE)
+        process=Popen('inkscape -f "{map}.svg" --verb=FitCanvasToDrawing --export-pdf "{map}.pdf"'.format(map=target_name, outfolder = outfolder) , shell=True, stdout=PIPE,   stderr=PIPE)
         out, err = process.communicate()
         errcode = process.returncode
         if errcode:
@@ -115,37 +119,36 @@ def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=No
             
             
     #makes the legend with matplotlib
-    if is_bined: 
-        l = make_bined_legend(series_in,bincolors,bins,label,font,outfolder+"legend_of_"+outname)
-    else:
-        l = make_legend(series_in,color_maper,label,outfolder+"legend_of_"+outname)
-    
-    if shutil.which("convert") is None:
-        print("Cannot merge map and legend. Install ImageMagick® to do so.")
-    elif could_do_png_map:
-        #trims margins out
-        call("convert "+outfolder+"map_of_{outname}.png -trim map_of_{outname}.png".format(outname=outname,w=img_width), shell=True )
-        
-        
-        #Attempts to downsize to a single width and concatenate using imagemagick
-        # call("convert "+outfolder+"legend_of_{outname}.png -resize {w} small_legend.png".format(outname=outname,w=img_width), shell=True )
-        # call("convert "+outfolder+"map_of_{outname}.png -resize {w} small_map.png".format(outname=outname,w=img_width) , shell=True)
-        
-        merged_path = outfolder+"map_and_legend_of_{outname}.png".format(outname=outname)
-        
-        # call("convert -append small_map.png small_legend.png "+merged_path, shell=True)
-        
-        if is_bined:
-            call("convert "+outfolder+"map_of_{outname}.png legend_of_{outname}.png -background none +append ".format(outname=outname)+merged_path, shell=True)
+    if doPNG:
+        if is_bined: 
+            l = make_bined_legend(series_in,bincolors,bins,label,font,outfolder+"legend_of_"+outname)
         else:
-            call("convert "+outfolder+"map_of_{outname}.png -gravity east legend_of_{outname}.png -background none -append ".format(outname=outname)+merged_path, shell=True)
+            l = make_legend(series_in,color_maper,label,outfolder+"legend_of_"+outname)
+    
+        if shutil.which("convert") is None:
+            print("Cannot merge map and legend. Install ImageMagick® to do so.")
+        elif could_do_png_map:
+            
+            
+            #Attempts to downsize to a single width and concatenate using imagemagick
+            # call("convert "+outfolder+"legend_of_{outname}.png -resize {w} small_legend.png".format(outname=outname,w=img_width), shell=True )
+            # call("convert "+outfolder+"map_of_{outname}.png -resize {w} small_map.png".format(outname=outname,w=img_width) , shell=True)
+            
+            merged_path = outfolder+"map_and_legend_of_{outname}.png".format(outname=outname)
+            
+            # call("convert -append small_map.png small_legend.png "+merged_path, shell=True)
+            
+            if is_bined:
+                call("convert "+outfolder+"map_of_{outname}.png legend_of_{outname}.png -background none +append ".format(outname=outname)+merged_path, shell=True)
+            else:
+                call("convert "+outfolder+"map_of_{outname}.png -gravity east legend_of_{outname}.png -background none -append ".format(outname=outname)+merged_path, shell=True)
         
         #removes temp files
         if os.path.isfile("small_map.png"):
             os.remove("small_map.png")
         if os.path.isfile("small_legend.png"):
             os.remove("small_legend.png")
-    
+
         if os.path.isfile(merged_path):
             return Image(merged_path)
         
