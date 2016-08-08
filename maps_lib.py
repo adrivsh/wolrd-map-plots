@@ -56,8 +56,11 @@ def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=No
         
         
     for p in soup.findAll("path"):
-        c=p["class"]
-        if "country" in c:
+        c=p["class"] 
+        if p.has_attr('id'):
+            # print("found")
+            c+=" "+p["id"]
+        if ("data" in c) or ('country' in c):
             iso_code = c[-3:] #guesses the ISO code from the class (too specific)
             try:
                 p["style"]  = "fill: {fill_color};".format(fill_color=color[iso_code])
