@@ -22,7 +22,7 @@ font = {'family' : 'sans serif',
     'size'   : 22}
 plt.rc('font', **font)
 
-def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=None, color_maper=None, label = "", outfolder ="img/" , new_title=None, verbose=False, font=font, doPNG=True ):
+def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=None, color_maper=None, label = "", outfolder ="img/" , new_title=None, verbose=False, font=font, doPNG=True, keepSVG=False ):
     """Makes a cloropleth map and a legend from a panda series and a blank svg map. 
     Assumes the index of the series matches the SVG classes
     Saves the map in SVG, and in PNG if Inkscape is installed.
@@ -48,7 +48,7 @@ def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=No
     
     
     #output file name
-    target_name = outfolder+"map_of_"+outname
+    target_name = outfolder+("map_of_" if doPNG else "")+outname
 
     #read input 
     with open(svg_file_path, 'r',encoding='utf8') as svgfile: #MIND UTF8
@@ -72,9 +72,10 @@ def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=No
     #write output
     with open(target_name+".svg", 'w', encoding="utf-8") as svgfile:
         svgfile.write(soup.prettify())
-          
-    #Link to SVG
-    display(HTML("<a target='_blank' href='"+target_name+".svg"+"'>SVG "+new_title+"</a>"))  #Linking to SVG instead of showing SVG directly works around a bug in the notebook where style-based colouring colors all the maps in the NB with a single color scale (due to CSS)
+    
+    if keepSVG:
+        #Link to SVG
+        display(HTML("<a target='_blank' href='"+target_name+".svg"+"'>SVG "+new_title+"</a>"))  #Linking to SVG instead of showing SVG directly works around a bug in the notebook where style-based colouring colors all the maps in the NB with a single color scale (due to CSS)
     
     
     
@@ -90,7 +91,7 @@ def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=No
             # print("Missing in series: "+"; ".join(set(data_missing_in_series)))
 
     if shutil.which("inkscape") is None:
-        print("cannot convert SVG to PNG. Install Inkscape to do so.")
+        print("cannot convert SVG to PNG or PDF. Install Inkscape to do so.")
         could_do_png_map = False
     else:
         if doPNG:
@@ -106,7 +107,7 @@ def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=No
                 #trims margins out
                 call("convert "+outfolder+"{map}.png -trim {map}.png".format(map=target_name), shell=True )
 
-                display(HTML("<a target='_blank' href='"+target_name+".png"+"'>PNG "+new_title+"</a>"))  #Linking to SVG instead of showing SVG directly works around a bug in the notebook where style-based colouring colors all the maps in the NB with a single color scale (due to CSS)
+                display(HTML("<a target='_blank' href='"+target_name+".png"+"'>PNG "+new_title+"</a>"))  
         
         #Attempts to inkscape SVG to PDF
         process=Popen('inkscape -f "{map}.svg" --verb=FitCanvasToDrawing --export-pdf "{map}.pdf"'.format(map=target_name, outfolder = outfolder) , shell=True, stdout=PIPE,   stderr=PIPE)
@@ -119,7 +120,10 @@ def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=No
             could_do_pdf_map = True
             display(HTML("<a target='_blank' href='"+target_name+".pdf"+"'>PDF "+new_title+"</a>"))  #Linking to SVG instead of showing SVG directly works around a bug in the notebook where style-based colouring colors all the maps in the NB with a single color scale (due to CSS)
 
-            
+    #deletesSVG if not keeping them (SVGs are very heavy sometimes)        
+    if could_do_pdf_map:
+        if not keepSVG:
+            os.remove(target_name+".svg")
             
     #makes the legend with matplotlib
     if doPNG:
