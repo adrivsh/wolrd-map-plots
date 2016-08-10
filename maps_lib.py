@@ -22,7 +22,7 @@ font = {'family' : 'sans serif',
     'size'   : 22}
 plt.rc('font', **font)
 
-def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=None, color_maper=None, label = "", outfolder ="img/" , new_title="", verbose=False, font=font, doPNG=True, keepSVG=False ):
+def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=None, color_maper=None, label = "", outfolder ="img/" , new_title="", verbose=False, font=font, doPNG=True,formater=".0f", keepSVG=False  ):
     """Makes a cloropleth map and a legend from a panda series and a blank svg map. 
     Assumes the index of the series matches the SVG classes
     Saves the map in SVG, and in PNG if Inkscape is installed.
@@ -105,12 +105,12 @@ def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=No
             else:
                 could_do_png_map = True
                 #trims margins out
-                call("convert "+outfolder+"{map}.png -trim {map}.png".format(map=target_name), shell=True )
+                call("convert {map}.png -trim {map}.png".format(map=target_name), shell=True )
 
                 display(HTML("<a target='_blank' href='"+target_name+".png"+"'>PNG "+new_title+"</a>"))  
         
         #Attempts to inkscape SVG to PDF
-        process=Popen('inkscape -f "{map}.svg" --verb=FitCanvasToDrawing --export-pdf "{map}.pdf"'.format(map=target_name, outfolder = outfolder) , shell=True, stdout=PIPE,   stderr=PIPE)
+        process=Popen('inkscape -f "{map}.svg" --verb=FitCanvasToDrawing --export-pdf "{map}.pdf"'.format(map=target_name) , shell=True, stdout=PIPE,   stderr=PIPE)
         out, err = process.communicate()
         errcode = process.returncode
         if errcode:
@@ -124,11 +124,15 @@ def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=No
     if could_do_pdf_map:
         if not keepSVG:
             os.remove(target_name+".svg")
+
+
+        #crops the resulting pdf    
+        call('pdfcrop "{map}.pdf" "{map}.pdf"'.format(map=target_name))
             
     #makes the legend with matplotlib
     if doPNG:
         if is_bined: 
-            l = make_bined_legend(series_in,bincolors,bins,label,font,outfolder+"legend_of_"+outname)
+            l = make_bined_legend(series_in,bincolors,bins,label,font,outfolder+"legend_of_"+outname, formater=formater)
         else:
             l = make_legend(series_in,color_maper,label,outfolder+"legend_of_"+outname)
     
@@ -141,14 +145,14 @@ def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=No
             # call("convert "+outfolder+"legend_of_{outname}.png -resize {w} small_legend.png".format(outname=outname,w=img_width), shell=True )
             # call("convert "+outfolder+"map_of_{outname}.png -resize {w} small_map.png".format(outname=outname,w=img_width) , shell=True)
             
-            merged_path = outfolder+"map_and_legend_of_{outname}.png".format(outname=outname)
+            merged_path = "map_and_legend_of_{outname}.png".format(outname=outname)
             
             # call("convert -append small_map.png small_legend.png "+merged_path, shell=True)
             
             if is_bined:
-                call("convert "+outfolder+"map_of_{outname}.png legend_of_{outname}.png -background none +append ".format(outname=outname)+merged_path, shell=True)
+                call("convert map_of_{outname}.png legend_of_{outname}.png -background none +append ".format(outname=outname)+merged_path, cwd=outfolder, shell=True)
             else:
-                call("convert "+outfolder+"map_of_{outname}.png -gravity east legend_of_{outname}.png -background none -append ".format(outname=outname)+merged_path, shell=True)
+                call("convert map_of_{outname}.png -gravity east legend_of_{outname}.png -background none -append ".format(outname=outname)+merged_path, cwd=outfolder, shell=True)
         
         #removes temp files
         if os.path.isfile("small_map.png"):
@@ -156,8 +160,8 @@ def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=No
         if os.path.isfile("small_legend.png"):
             os.remove("small_legend.png")
 
-        if os.path.isfile(merged_path):
-            return Image(merged_path)
+        if os.path.isfile(outfolder+merged_path):
+            return Image(outfolder+merged_path)
         
     
 import matplotlib as mpl
@@ -188,14 +192,14 @@ def make_legend(serie,cmap,label="",path=None):
     return Image(path+".png", width=img_width   )  
     
     
-def make_bined_legend(serie,bincolors,bins,label="",font=font,path=None, figsize=(9,9)):
+def make_bined_legend(serie,bincolors,bins,label="",font=font,path=None, figsize=(9,9), formater=".0f"):
     #todo: log flag
     plt.rc('font', **font)
     
     patches =[]
     for i in np.arange(len(bincolors)):
         patches+=[mpatches.Patch( fc=bincolors[i], 
-                    label=("{m:.0f} — {M:.0f}").format(m=bins[i],M=bins[i+1])
+                    label=("{m:"+formater+"} — {M:"+formater+"}").format(m=bins[i],M=bins[i+1])
                         )]
     
     patches+=[mpatches.Patch( fc="#e0e0e0", 
