@@ -22,7 +22,7 @@ font = {'family' : 'sans serif',
     'size'   : 22}
 plt.rc('font', **font)
 
-def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=None, color_maper=None, label = "", outfolder ="img/" , new_title=None, verbose=False, font=font, doPNG=True, keepSVG=False ):
+def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=None, color_maper=None, label = "", outfolder ="img/" , new_title="", verbose=False, font=font, doPNG=True, keepSVG=False ):
     """Makes a cloropleth map and a legend from a panda series and a blank svg map. 
     Assumes the index of the series matches the SVG classes
     Saves the map in SVG, and in PNG if Inkscape is installed.
