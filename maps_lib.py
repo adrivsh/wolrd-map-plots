@@ -22,7 +22,7 @@ font = {'family' : 'sans serif',
     'size'   : 22}
 plt.rc('font', **font)
 
-def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=None, color_maper=None, label = "", outfolder ="img/" , new_title="", verbose=False, font=font, doPNG=True,formater=".0f", keepSVG=False  ):
+def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=None, color_maper=None, label = "", outfolder ="img/" , new_title="", verbose=False, font=font, doPNG=True,formater=".0f", keepSVG=False, custom_labels=None  ):
     """Makes a cloropleth map and a legend from a panda series and a blank svg map. 
     Assumes the index of the series matches the SVG classes
     Saves the map in SVG, and in PNG if Inkscape is installed.
@@ -132,7 +132,7 @@ def make_map_from_svg(series_in, svg_file_path, outname, bins=None, bincolors=No
     #makes the legend with matplotlib
     if doPNG:
         if is_bined: 
-            l = make_bined_legend(series_in,bincolors,bins,label,font,outfolder+"legend_of_"+outname, formater=formater)
+            l = make_bined_legend(series_in,bincolors,bins,label,font,outfolder+"legend_of_"+outname, formater=formater, custom_labels = custom_labels)
         else:
             l = make_legend(series_in,color_maper,label,outfolder+"legend_of_"+outname)
     
@@ -192,14 +192,14 @@ def make_legend(serie,cmap,label="",path=None):
     return Image(path+".png", width=img_width   )  
     
     
-def make_bined_legend(serie,bincolors,bins,label="",font=font,path=None, figsize=(9,9), formater=".0f"):
+def make_bined_legend(serie,bincolors,bins,label="",font=font,path=None, figsize=(9,9), formater=".0f", custom_labels = None ):
     #todo: log flag
     plt.rc('font', **font)
     
     patches =[]
     for i in np.arange(len(bincolors)):
         patches+=[mpatches.Patch( fc=bincolors[i], 
-                    label=("{m:"+formater+"} — {M:"+formater+"}").format(m=bins[i],M=bins[i+1])
+                    label=("{m:"+formater+"} — {M:"+formater+"}").format(m=bins[i],M=bins[i+1]) if custom_labels is None else custom_labels[i]
                         )]
     
     patches+=[mpatches.Patch( fc="#e0e0e0", 
