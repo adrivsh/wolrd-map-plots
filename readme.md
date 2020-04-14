@@ -1,6 +1,6 @@
 # World map colorer
 
-This project helps you build chloropleth world maps **attempting** to render decently the disputed boundaries.
+This project helps you build choropleth world maps **attempting** to render decently the disputed boundaries.
 
 
 # Getting started
